@@ -13,11 +13,10 @@ class ViewController: UIViewController {
     
     var timer = Timer()
     let delay = 0.7
-    
     let speechSynthesizer = AVSpeechSynthesizer()
     //variables for label.text
-    var numberOnScreen: Int = 0
-    
+    var number: Int = 0
+    var numberString : String = ""
     //audio variables for the 3 icon
     var NOF = AVAudioPlayer()
     var PlsRetTray = AVAudioPlayer()
@@ -30,7 +29,6 @@ class ViewController: UIViewController {
         NOF.play()
     }
     @IBAction func Bell(_ sender: UIButton) {
-
         DingDong.play()
     }
     
@@ -40,8 +38,8 @@ class ViewController: UIViewController {
     }
     
     @IBAction func numbers(_ sender: UIButton) {
-        label.text = (label.text! + String(sender.tag - 1))
-        numberOnScreen = Int(label.text!)!
+        numberString = numberString + String(sender.tag - 1)
+        label.text = numberString
     }
     
     @IBAction func Proceed(_ sender: UIButton) {
@@ -54,74 +52,92 @@ class ViewController: UIViewController {
     }
     
     @IBAction func Buttons(_ sender: UIButton) {
-        if (sender.tag == 12 || sender.tag == 11) // clear and call
+        // clear button, clear the textfield
+        if (sender.tag == 11)
         {
-            label.text = nil
+            label.text = "0"
         }
-        
-        if(sender.tag == 13){ //+
-            if(numberOnScreen <= 100 && numberOnScreen > 0){
-                numberOnScreen += 1
+        //+ button
+        if(sender.tag == 13){
+            if(label.text != nil){
+                number = Int(label.text ?? "0")!
             }
-            else{
-                numberOnScreen = 1;
-            }
-            label.text = String(Int(numberOnScreen))
+            number = (number + 1)%100
+            label.text = String(number)
         }
-        if(sender.tag == 14){ //-
-            if(numberOnScreen <= 100 && numberOnScreen > 2){
-                numberOnScreen -= 1
+        //- button
+        if(sender.tag == 14){
+            if(label.text != nil){
+                number = Int(label.text ?? "0")!
             }
-            else{
-                numberOnScreen = 1;
+            number = (number - 1)%100
+            if(number < 0){
+                number = 0;
             }
-            label.text = String(Int(numberOnScreen))
+            label.text = String(number)
         }
-        
-        if sender.tag == 12{//play sound(call)
-            
-            label.text = String(Int(numberOnScreen))
+        //Call button
+        if sender.tag == 12{
+            if(Int(label.text!)! > 100){
+                var temp : String
+                temp = label.text!
+                temp = String(temp.prefix(2))
+                label.text = temp
+            }
+            print("called")
             DingDong.play()
+            //invalidate previous timer
             timer.invalidate()
+            //call timer
             timer = Timer.scheduledTimer(timeInterval: TimeInterval(delay), target: self, selector: #selector(delayedAction), userInfo: nil, repeats: false)
-            
+            numberString = ""
         }
-     
         
     }
     
-    @objc func delayedAction() {
-        print("action has started")
-        let speechUtterance = AVSpeechUtterance(string:label.text!)
-        speechUtterance.voice = AVSpeechSynthesisVoice(language: "en-US")
-        speechSynthesizer.speak(speechUtterance)
-        label.text = nil
-    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         do{
+            label.text = "0"
+            //preload audio
             NOF = try AVAudioPlayer(contentsOf: URL.init(fileURLWithPath: Bundle.main.path(forResource: "NOF", ofType: "m4a")!))
             PlsRetTray = try AVAudioPlayer(contentsOf: URL.init(fileURLWithPath: Bundle.main.path(forResource: "PRT", ofType: "m4a")!))
             DingDong = try AVAudioPlayer(contentsOf: URL.init(fileURLWithPath: Bundle.main.path(forResource: "Ding", ofType: "mp3")!))
             
             //DingDong.volume = 0.4f
             DingDong.enableRate = true //<--
-             DingDong.prepareToPlay()
+            DingDong.prepareToPlay()
             //[player setNumberOfLoops:0];
             DingDong.rate = 2.0 //<-- Playback Speed
            
             NOF.prepareToPlay()
             PlsRetTray.prepareToPlay()
-           
-            
-           
-        
         }
         catch{
             print(error)
         }
-        
-       
+    }
+    
+    override func didRotate(from fromInterfaceOrientation: UIInterfaceOrientation) {
+        switch UIDevice.current.orientation{
+        case .landscapeLeft,
+             .landscapeRight:
+            label.font = UIFont.systemFont(ofSize: 200.0)
+            break
+        case .portrait:
+            label.font = UIFont.systemFont(ofSize: 30.0)
+            break
+        default:
+            print("Default")
+        }
+    }
+    
+    @objc func delayedAction() {
+        let speechUtterance = AVSpeechUtterance(string:label.text!)
+        speechUtterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+        speechSynthesizer.speak(speechUtterance)
+        number = 0;
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -131,7 +147,5 @@ class ViewController: UIViewController {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
-
-
 }
 
